@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Boids</title>
+  <script src="boids.js"></script>
+</head>
+<body>
+<canvas id="boids" width="1000" height="500"></canvas>
+<script>
+
+var canvasElement = document.getElementById("boids");
+var arena = new Arena(canvasElement, 25, 1);
+
+arena.newBoid(200, 200, 0);
+arena.simulate(30);
+
+//setInterval(step, 50);
+
+/*
+var theta = 0;
+for(var i=50; i<500; i+=100)
+{
+  for(var j=50; j<500; j+= 100)
+  {
+    theta += 2 * Math.PI / 25;
+    var b = new Boid(j, i, theta);
+    b.draw(context, 25);
+  }
+}
+*/
+</script>
+</body>
+</html>
