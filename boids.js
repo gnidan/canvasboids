@@ -1,6 +1,7 @@
 function Arena(canvas, size, maxSpeed)
 {
 	this.neighborDistance = 2 * size;
+  this.crowdedDistance = 1.1 * size;
   
 	// speed is in boid lengths per second
 	this.canvas = canvas;
@@ -21,6 +22,7 @@ function Arena(canvas, size, maxSpeed)
 	
 	this.newBoid = function(x, y) {
 		var b = new Boid(x, y);
+		b.crowdedDistance = this.crowdedDistance;
 		this.objects.push(b);
 		return b;
 	}
@@ -88,7 +90,7 @@ function Arena(canvas, size, maxSpeed)
 }
 
 function Boid(x, y)
-{   
+{
   this.pos   = new Vector2D(x, y);
   this.vel   = new Vector2D(Math.random() * 2 - 1, Math.random() * 2 - 1);
   this.acc   = new Vector2D(0,0);
@@ -138,27 +140,34 @@ function Boid(x, y)
 	
 	this.flock = function(neighbors) {
 	  this.acc.add(this.separate(neighbors));
-	  this.acc.add(this.align(neighbors).mult(2));
+	  this.acc.add(this.align(neighbors));
 	  this.acc.add(this.center(neighbors));
 	}
 	
 	this.separate = function(neighbors) {
 	  var sum = new Vector2D(0,0);
-	  
+	  var count = 0;
 	  for(i in neighbors)
 	  {
 	    var boid = neighbors[i];
+	    
 	    var dist = this.pos.distance(boid.pos);
 	    
-	    var diff = new Vector2D(this.pos.x, this.pos.y);
-	    diff.sub(boid.pos);
-	    
-	    diff.normalize();
-	    
-	    sum.add(diff);
+	    if(dist < this.crowdedDistance)
+	    {
+	      var diff = new Vector2D(this.pos.x, this.pos.y);
+  	    diff.sub(boid.pos);
+
+  	    diff.normalize();
+  	    diff.mult(dist);
+
+  	    sum.add(diff);
+  	    count++;
+	    }
+
 	  }
-	  
-	  sum.div(neighbors.length);
+	  if(count > 0)
+	    sum.div(neighbors.length);
 	  
 	  return sum;
 	}
