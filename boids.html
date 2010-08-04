@@ -5,13 +5,14 @@
   <script src="boids.js"></script>
 </head>
 <body>
-<canvas id="boids" width="1000" height="500"></canvas>
+<canvas id="boids" width="800" height="600"></canvas>
 <script>
 
 var canvasElement = document.getElementById("boids");
-var arena = new Arena(canvasElement, 25, 1);
+var arena = new Arena(canvasElement, 20, 4);
 
-arena.newBoid(200, 200, 0);
+for(var i=0; i<50; i++)
+  arena.newBoid(100, 100);
 arena.simulate(30);
 
 //setInterval(step, 50);

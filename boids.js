@@ -1,10 +1,12 @@
-function Arena(canvas, size, speed)
+function Arena(canvas, size, maxSpeed)
 {
+	this.neighborDistance = 2 * size;
+  
 	// speed is in boid lengths per second
 	this.canvas = canvas;
 	this.context = canvas.getContext("2d");
 	this.size = size;
-	this.speed = speed;
+	this.maxSpeed = maxSpeed;
 	this.objects = [];
 	
 	this.simulate = function(framerate) {
@@ -17,8 +19,8 @@ function Arena(canvas, size, speed)
 		setInterval(function() { arena.step(arena); }, 1000.0 / framerate);
 	}
 	
-	this.newBoid = function(centerX, centerY, theta) {
-		var b = new Boid(centerX, centerY, theta);
+	this.newBoid = function(x, y) {
+		var b = new Boid(x, y);
 		this.objects.push(b);
 		return b;
 	}
@@ -50,39 +52,69 @@ function Arena(canvas, size, speed)
 
 		for(var i in arena.objects)
 		{
-			arena.objects[i].move( this.size * this.speed * this.portion );
-			arena.objects[i].rotate(Math.PI * 2 / 180);
+			var boid = arena.objects[i];
 			
+			var neighbors = [];
+			for(var j in arena.objects)
+			{
+			  var other = arena.objects[j];
+			  
+			  if(other != boid && boid.pos.distance(other.pos) < this.neighborDistance)
+			      neighbors.push(other);
+			}
+			
+			if(neighbors.length > 0)
+			  boid.flock(neighbors);
+			
+			var distance = arena.size * arena.maxSpeed * arena.portion;
+			
+			boid.move(distance);
+			
+		}
+		
+		for(var i in arena.objects)
+		{
+		  var boid  = arena.objects[i];
+		  
+		  boid.pos.x += arena.canvas.width;
+		  boid.pos.y += arena.canvas.height;
+		  
+		  boid.pos.x %= arena.canvas.width;
+			boid.pos.y %= arena.canvas.height;			
 		}
 		
 		arena.draw();
 	}
 }
 
-function Boid(centerX, centerY, theta)
-{
-	this.centerX = centerX;
-	this.centerY = centerY;
-	this.theta = theta;
-	
-	this.draw =	function(context, length) {
+function Boid(x, y)
+{   
+  this.pos   = new Vector2D(x, y);
+  this.vel   = new Vector2D(Math.random() * 2 - 1, Math.random() * 2 - 1);
+  this.acc   = new Vector2D(0,0);
+
+	this.draw =	function(context, length) {	 
 	  var width = 3/4 * length;
 	  context.beginPath();
+	  
+	  var centerX = this.pos.x;
+	  var centerY = this.pos.y;
+	  var theta   = this.vel.theta();
 
-	  frontX = this.centerX + (length / 2) * Math.cos(this.theta);
-	  frontY = this.centerY + (length / 2) * Math.sin(this.theta);
+	  var frontX = centerX + (length / 2) * Math.cos(theta);
+	  var frontY = centerY + (length / 2) * Math.sin(theta);
 
-	  rearX = frontX - 2 * (frontX - this.centerX);
-	  rearY = frontY - 2 * (frontY - this.centerY);
+	  var rearX = frontX - 2 * (frontX - centerX);
+	  var rearY = frontY - 2 * (frontY - centerY);
 
-	  dentX = frontX - 1.75 * (frontX - this.centerX);
-	  dentY = frontY - 1.75 * (frontY - this.centerY);
+	  var dentX = frontX - 1.75 * (frontX - centerX);
+	  var dentY = frontY - 1.75 * (frontY - centerY);
 
-	  rightX = rearX + (width / 2) * Math.cos(this.theta + Math.PI / 2);
-	  rightY = rearY + (width / 2) * Math.sin(this.theta + Math.PI / 2);
+	  var rightX = rearX + (width / 2) * Math.cos(theta + Math.PI / 2);
+	  var rightY = rearY + (width / 2) * Math.sin(theta + Math.PI / 2);
 
-	  leftX = rearX - (width / 2) * Math.cos(this.theta + Math.PI / 2);
-	  leftY = rearY - (width / 2) * Math.sin(this.theta + Math.PI / 2);
+	  var leftX = rearX - (width / 2) * Math.cos(theta + Math.PI / 2);
+	  var leftY = rearY - (width / 2) * Math.sin(theta + Math.PI / 2);
 
 	  context.moveTo(frontX, frontY);
 	  context.lineTo(rightX, rightY);
@@ -94,14 +126,138 @@ function Boid(centerX, centerY, theta)
 	  context.stroke();
 	}
 	
-	this.move = function (distance) {
-		this.centerX += distance * Math.cos(this.theta);
-		this.centerY += distance * Math.sin(this.theta);
+	this.move = function(distance) {
+	  this.vel.add(this.acc);
+	  
+	  this.vel.limit(distance);
+	  
+	  this.pos.add(this.vel);
+	  
+	  this.acc = new Vector2D(0,0);
 	}
 	
-	this.rotate = function(theta) {
-		this.theta += theta;
+	this.flock = function(neighbors) {
+	  this.acc.add(this.separate(neighbors));
+	  this.acc.add(this.align(neighbors).mult(2));
+	  this.acc.add(this.center(neighbors));
+	}
+	
+	this.separate = function(neighbors) {
+	  var sum = new Vector2D(0,0);
+	  
+	  for(i in neighbors)
+	  {
+	    var boid = neighbors[i];
+	    var dist = this.pos.distance(boid.pos);
+	    
+	    var diff = new Vector2D(this.pos.x, this.pos.y);
+	    diff.sub(boid.pos);
+	    
+	    diff.normalize();
+	    
+	    sum.add(diff);
+	  }
+	  
+	  sum.div(neighbors.length);
+	  
+	  return sum;
+	}
+	
+	this.align = function(neighbors) {
+	  var sum = new Vector2D(0, 0);
+	  
+	  for(i in neighbors)
+	  {
+	    var boid = neighbors[i];
+	    
+	    sum.add(boid.vel);
+	  }
+	  
+	  sum.div(neighbors.length);
+	  
+	  return sum;
+	}
+	
+	this.center = function(neighbors) {
+	  var sum = new Vector2D(0, 0);
+	  for(i in neighbors)
+	  {
+	    var boid = neighbors[i];
+	    sum.add(boid.pos);
+	  }
+	  
+	  sum.div(neighbors.length);
+	  
+	  return this.steer(sum);
+	}
+	
+	this.steer = function(target) {
+	  target.sub(this.pos);
+	  target.sub(this.vel);
+	  target.limit(0.01);
+	  
+	  return target;
 	}
 }
 
-
+function Vector2D(x, y)
+{
+  this.x = x;
+  this.y = y;
+  
+  this.r = function() {
+    return Math.sqrt( this.x * this.x + this.y * this.y);
+  }
+  
+  this.theta = function() {
+    var angle = Math.atan2(-this.y, this.x);
+    return -angle;
+  }
+  
+  this.add = function(that) {
+    this.x += that.x;
+    this.y += that.y;
+    return this;
+  }
+  
+  this.sub = function(that) {
+    this.x -= that.x;
+    this.y -= that.y;
+    return this;
+  }
+  
+  this.mult = function(n) {
+    this.x *= n;
+    this.y *= n;
+    return this;
+  }
+  
+  this.div = function(n) {
+    this.x /= n;
+    this.y /= n;
+    return this;
+  }
+  
+  this.normalize = function() {
+    if(this.r() > 0)
+      this.div(this.r());
+    return this;
+  }
+  
+  this.limit = function(max) {
+    var r = this.r();
+    if(r > max)
+    {
+      this.normalize();
+      this.mult(max);
+    }
+    return this;
+  }
+  
+  this.distance = function(that) {
+    var dx = this.x - that.x;
+    var dy = this.y - that.y;
+    
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+}
