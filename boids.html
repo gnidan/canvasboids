@@ -5,30 +5,41 @@
   <script src="boids.js"></script>
 </head>
 <body>
-<canvas id="boids" width="800" height="600"></canvas>
+<canvas id="boids" width="1000" height="600"></canvas>
 <script>
 
 var canvasElement = document.getElementById("boids");
-var arena = new Arena(canvasElement, 20, 4);
+arena = new Arena(canvasElement, 20, 4);
 
 for(var i=0; i<50; i++)
-  arena.newBoid(100, 100);
-arena.simulate(30);
-
-//setInterval(step, 50);
-
-/*
-var theta = 0;
-for(var i=50; i<500; i+=100)
 {
-  for(var j=50; j<500; j+= 100)
-  {
-    theta += 2 * Math.PI / 25;
-    var b = new Boid(j, i, theta);
-    b.draw(context, 25);
-  }
+  var x = Math.random()*canvasElement.width;
+  var y = Math.random()*canvasElement.height;
+  
+  arena.newBoid(x,y); 
 }
-*/
+arena.simulate(20);
+
+canvasElement.addEventListener("click", 
+function(e)
+{
+  var x, y;
+  
+  if(e.pageX && e.pageY) {
+    x = e.pageX;
+    y = e.pageY;
+  }
+  else {
+    x = e.clientX + document.body.scrollLeft +
+      document.documentElement.scrollLeft;
+    y = e.clientY + document.body.scrollTop +
+      document.documentElement.scrollTop;
+  }
+  x -= canvasElement.offsetLeft;
+  y -= canvasElement.offsetTop;
+  
+  arena.newBoid(x,y);
+}, false);
 </script>
 </body>
 </html>
