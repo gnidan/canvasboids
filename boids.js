@@ -1,14 +1,19 @@
 function Arena(canvas, size, maxSpeed)
 {
-	this.neighborDistance = 2 * size;
-  this.crowdedDistance = 1.1 * size;
+	this.neighborDistance = 4 * size;
+  this.crowdedDistance = 1.6 * size;
   
 	// speed is in boid lengths per second
 	this.canvas = canvas;
 	this.context = canvas.getContext("2d");
 	this.size = size;
 	this.maxSpeed = maxSpeed;
+	this.cruisingSpeed = maxSpeed / 2;
 	this.objects = [];
+	
+	this.simulation = false;
+	
+	this.target = false;
 	
 	this.simulate = function(framerate) {
 		this.portion = 1 / framerate;
@@ -17,7 +22,13 @@ function Arena(canvas, size, maxSpeed)
 		// framerate => frames per second
 		// interval = 1000 / framerate
 
-		setInterval(function() { arena.step(arena); }, 1000.0 / framerate);
+		this.simulation = setInterval(function() { arena.step(arena); }, 1000.0 / framerate);
+	}
+	
+	this.pause = function()
+	{
+	  if(this.simulation)
+	    clearInterval(this.simulation);
 	}
 	
 	this.newBoid = function(x, y) {
@@ -57,6 +68,7 @@ function Arena(canvas, size, maxSpeed)
 			var boid = arena.objects[i];
 			
 			var neighbors = [];
+			
 			for(var j in arena.objects)
 			{
 			  var other = arena.objects[j];
@@ -66,7 +78,17 @@ function Arena(canvas, size, maxSpeed)
 			}
 			
 			if(neighbors.length > 0)
+			{
 			  boid.flock(neighbors);
+		  }
+			else
+			{
+			  if(i % 2 == 0)
+			    this.target = new Vector2D(Math.random() * this.canvas.width, Math.random() * this.canvas.height);
+			    
+			  boid.cruise(this.target);
+			}
+			  
 			
 			var distance = arena.size * arena.maxSpeed * arena.portion;
 			
@@ -94,6 +116,10 @@ function Boid(x, y)
   this.pos   = new Vector2D(x, y);
   this.vel   = new Vector2D(Math.random() * 2 - 1, Math.random() * 2 - 1);
   this.acc   = new Vector2D(0,0);
+  
+  this.cruise_target = false;
+  
+  this.color = "000";
 
 	this.draw =	function(context, length) {	 
 	  var width = 3/4 * length;
@@ -124,7 +150,7 @@ function Boid(x, y)
 	  context.lineTo(leftX, leftY);
 	  context.lineTo(frontX, frontY);
 
-	  context.strokeStyle = "#000";
+	  context.strokeStyle = this.color;
 	  context.stroke();
 	}
 	
@@ -135,19 +161,31 @@ function Boid(x, y)
 	  
 	  this.pos.add(this.vel);
 	  
-	  this.acc = new Vector2D(0,0);
 	}
 	
 	this.flock = function(neighbors) {
-	  this.acc.add(this.separate(neighbors));
+	  this.acc = new Vector2D(this.vel.x,this.vel.y);
+	  
+	  this.cruise_target = false;
+	  
+	  this.acc.add(this.separate(neighbors).mult(2));
 	  this.acc.add(this.align(neighbors));
 	  this.acc.add(this.center(neighbors));
+	}
+	
+	this.cruise = function(point, cruisingSpeed) {	  
+	  if(! this.cruise_target)
+	  {
+	    this.cruise_target = new Vector2D(point.x, point.y);
+    }
+
+    this.acc = this.steer(this.cruise_target); 
 	}
 	
 	this.separate = function(neighbors) {
 	  var sum = new Vector2D(0,0);
 	  var count = 0;
-	  for(i in neighbors)
+	  for(var i in neighbors)
 	  {
 	    var boid = neighbors[i];
 	    
@@ -175,39 +213,53 @@ function Boid(x, y)
 	this.align = function(neighbors) {
 	  var sum = new Vector2D(0, 0);
 	  
-	  for(i in neighbors)
+	  for(var i in neighbors)
 	  {
 	    var boid = neighbors[i];
 	    
 	    sum.add(boid.vel);
 	  }
 	  
-	  sum.div(neighbors.length);
+	  if(neighbors.length > 0)
+	    sum.div(neighbors.length);
 	  
 	  return sum;
 	}
 	
 	this.center = function(neighbors) {
-	  var sum = new Vector2D(0, 0);
-	  for(i in neighbors)
+	  var center = new Vector2D(0, 0);
+	  for(var i in neighbors)
 	  {
 	    var boid = neighbors[i];
-	    sum.add(boid.pos);
+	    center.add(boid.pos);
 	  }
 	  
-	  sum.div(neighbors.length);
-	  
-	  return this.steer(sum);
+	  if(neighbors.length > 0)
+	    center.div(neighbors.length);
+
+	  return this.steer(center);
 	}
 	
 	this.steer = function(target) {
-	  target.sub(this.pos);
-	  target.sub(this.vel);
-	  target.limit(0.01);
+	  var copy = new Vector2D(target.x, target.y);
 	  
-	  return target;
+	  copy.sub(this.pos);
+	  copy.limit(0.1);
+	  
+	  return copy;
+  }
+	
+	this.in_front_of = function(that) {
+	  var subv = new Vector2D(that.pos.x, that.pos.y);
+	  subv.sub(this.pos);
+
+	  if(subv.theta() > 0 && subv.theta() < Math.PI)
+	    return true;
+	  else
+	    return false;
 	}
 }
+
 
 function Vector2D(x, y)
 {

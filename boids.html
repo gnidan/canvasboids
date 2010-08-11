@@ -9,9 +9,9 @@
 <script>
 
 var canvasElement = document.getElementById("boids");
-arena = new Arena(canvasElement, 20, 4);
+arena = new Arena(canvasElement, 8, 8);
 
-for(var i=0; i<50; i++)
+for(var i=0; i<100; i++)
 {
   var x = Math.random()*canvasElement.width;
   var y = Math.random()*canvasElement.height;
