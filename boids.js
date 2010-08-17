@@ -186,6 +186,59 @@ function Arena(canvas, size, maxSpeed)
 		
 		arena.draw();
 	}
+
+  /**
+   * Calculate the distance between two boids, incorporating wrap
+   */
+  this.distance = function(one, another)
+  {
+    /* Four possible distances: 
+     *
+     * a.                         b.
+     * +-----------+              +-----------+-----------+
+     * |  .        |              |  .        |  .        |
+     * |   `.      |              |          ,.''         |
+     * |     `'.   |              |       .'' |       .   |
+     * +-----------+              +-----------+-----------+
+     *
+     * c.                         d.
+     * +-----------+              +-----------+
+     * |  .        |              |  .        |
+     * |           |              |           |
+     * |       .   |              |       .   |
+     * +--------`',+-----------+  +----..'----+
+     *             `'..        |  |  .'       |
+     *             |           |  |           |
+     *             |       .   |  |       .   |
+     *             +-----------+  +-----------+
+     *
+     * Actual distance is the smallest
+     */
+
+    var dx, dy, distA, distB, distC, distD;
+
+    /* a. */
+    dx = Math.abs(one.pos.x - another.pos.x);
+    dy = Math.abs(one.pos.y - another.pos.y);
+    distA = Math.sqrt(dx * dx + dy * dy);
+
+    /* b. */
+    dx = Math.abs(one.pos.x - another.pos.x + this.canvas.width);
+    dy = Math.abs(one.pos.y - another.pos.y);
+    distB = Math.sqrt(dx * dx + dy * dy);
+
+    /* c. */
+    dx = Math.abs(one.pos.x - another.pos.x + this.canvas.width);
+    dy = Math.abs(one.pos.y - another.pos.y + this.canvas.height);
+    distC = Math.sqrt(dx * dx + dy * dy);
+
+    /* d. */
+    dx = Math.abs(one.pos.x - another.pos.x);
+    dy = Math.abs(one.pos.y - another.pos.y + this.canvas.height);
+    distD = Math.sqrt(dx * dx + dy * dy);
+
+    return Math.min(distA, distB, distC, distD);
+  }
 }
 
 /**
