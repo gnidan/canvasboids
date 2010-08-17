@@ -95,6 +95,10 @@ function Arena(canvas, size, maxSpeed)
 	this.newBoid = function(x, y) {
 		var b = new Boid(x, y);
 		b.crowdedDistance = this.crowdedDistance;
+
+    var arena = this;
+    b.distance = function(other) { return arena.distance(b, other); }
+
 		this.boids.push(b);
 		return b;
 	}
@@ -145,7 +149,7 @@ function Arena(canvas, size, maxSpeed)
 			  var other = arena.boids[j];
 			  
 			  if(other != boid && 
-          boid.pos.distance(other.pos) <= this.neighborDistance)
+          boid.distance(other) <= this.neighborDistance)
         {
           neighbors.push(other);
         }
@@ -372,7 +376,7 @@ function Boid(x, y)
 	  {
 	    var boid = neighbors[i];
 	    
-	    var dist = this.pos.distance(boid.pos);
+	    var dist = this.distance(boid);
 	    
 	    if(dist < this.crowdedDistance)
 	    {
@@ -538,15 +542,5 @@ function Vector2D(x, y)
       this.mult(max);
     }
     return this;
-  }
-  
-  /**
-   * Distance to another vector
-   */
-  this.distance = function(that) {
-    var dx = this.x - that.x;
-    var dy = this.y - that.y;
-    
-    return Math.sqrt(dx * dx + dy * dy);
   }
 }
