@@ -217,7 +217,7 @@ function Boid(x, y)
    * Don't discriminate! Color of the boid (for debugging purposes. Or maybe 
    * to make things psychedelic perhaps. I dunno.)
    */
-  this.color = "000";
+  this.color = "#000";
 
   /**
    * Draw the boid
