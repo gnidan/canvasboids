@@ -1,5 +1,6 @@
 Boids Simulation with HTML5 Canvas
 ==================================
+<iframe src="./boids.html"></iframe>
 
 This is a simulation of the Boids flocking demo built on HTML5's <canvas> 
 element using Javascript.
